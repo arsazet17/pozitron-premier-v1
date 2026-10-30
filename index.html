@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#04150e">
+<title>Позитрон Премьер</title>
+<link rel="manifest" href="./manifest.webmanifest?v=1.0.0">
+<link rel="icon" href="./icons/icon-192.png?v=1.0.0">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=1.0.0">
+<link rel="stylesheet" href="./styles.css?v=1.0.0">
+<link rel="stylesheet" href="./update-app.css?v=1.0.0">
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <div class="brand">
+    <img class="logo" src="./icons/icon-192.png?v=1.0.0" alt="" width="52" height="52">
+    <div>
+      <div class="title-row">
+        <div class="title">Позитрон Премьер</div>
+        <span class="app-version" id="appVersion">v1.0.0</span>
+      </div>
+      <div class="sub">AI-ставка 4+4 на следующий тираж</div>
+    </div>
+  </div>
+  <button class="bell update-bell" id="updateAppBtn" type="button" aria-label="Обновить приложение" title="Обновить приложение">🔔</button>
+</header>
+
+<main>
+<section class="page active" id="home">
+  <div class="card strip two">
+    <div>
+      <div class="k">🕘 Последний тираж</div>
+      <div class="v" id="lastDraw">—</div>
+      <div class="fields-mini" id="lastBalls"></div>
+    </div>
+    <div>
+      <div class="k">📅 Следующий тираж</div>
+      <div class="v" id="nextDraw">—</div>
+      <div class="small" id="countdown">—</div>
+      <div class="small" id="fixedNote">—</div>
+    </div>
+  </div>
+
+  <div class="card bet-card">
+    <div class="sec-title">🎯 Ставка на тираж <span class="gold" id="betTarget"></span></div>
+    <div class="bet-field">
+      <div class="bet-label">Поле 1</div>
+      <div class="balls big" id="pick1"></div>
+    </div>
+    <div class="bet-field">
+      <div class="bet-label">Поле 2</div>
+      <div class="balls big" id="pick2"></div>
+    </div>
+    <div class="reserve" id="reserve"></div>
+    <div class="bet-info" id="betInfo"></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title">🧠 Как учится AI</div>
+    <div class="seg two-seg" id="aiSeg" role="group" aria-label="Поле">
+      <button type="button" data-f="0" class="on">Поле 1</button>
+      <button type="button" data-f="1">Поле 2</button>
+    </div>
+    <div class="ai-head"><span>Метод</span><span>Вес</span><span title="Сколько чисел из 4 угадывает метод в среднем">Сутки</span><span>Неделя</span></div>
+    <div id="aiList"></div>
+    <div class="small" id="aiNote"></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title">📊 Как сыграла AI-ставка</div>
+    <div class="seg" id="scoreSeg" role="group" aria-label="Период">
+      <button type="button" data-k="d" class="on">Сутки</button>
+      <button type="button" data-k="w">Неделя</button>
+      <button type="button" data-k="m">Месяц</button>
+      <button type="button" data-k="all">Архив</button>
+    </div>
+    <div class="score" id="score"></div>
+    <div class="live-score" id="liveScore"></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title">🕘 Последние тиражи</div>
+    <div class="small" style="margin:-4px 0 10px">Кольцо — число было в AI-ставке. Зелёное — угадано.</div>
+    <div id="lastRows"></div>
+  </div>
+</section>
+
+<section class="page" id="table">
+  <div class="title">Таблица</div><div class="sub">Тиражи сверху вниз, свежий — первый</div>
+  <div class="card tbl-card">
+    <div class="seg two-seg" id="tblField" role="group" aria-label="Поле">
+      <button type="button" data-f="0" class="on">Поле 1</button>
+      <button type="button" data-f="1">Поле 2</button>
+    </div>
+    <div class="seg three-seg" id="tblRows" role="group" aria-label="Сколько тиражей">
+      <button type="button" data-n="30" class="on">30</button>
+      <button type="button" data-n="60">60</button>
+      <button type="button" data-n="120">120</button>
+    </div>
+    <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+    <div class="legend">
+      <span><i class="lg drawn"></i>выпало</span>
+      <span><i class="lg hit"></i>угадано AI</span>
+      <span><i class="lg aim"></i>в ставке AI</span>
+      <span><i class="lg rep"></i>повтор подряд</span>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="results">
+  <div class="title">Результаты</div><div class="sub">Ставки, зафиксированные до тиража</div>
+  <div class="card" id="liveSummary"></div>
+  <div id="resultsList"><div class="card small">Загружаю…</div></div>
+</section>
+
+<section class="page" id="rules">
+  <div class="title">Правила</div><div class="sub">Выплаты и шанс каждого исхода</div>
+  <div class="card notice">
+    <div><b>Премьер</b> — два поля, в каждом 4 числа из 20. Тираж каждые 15 минут, билет <b>50 ₽</b>, призовой фонд 70%.</div>
+    <div class="small" style="margin-top:8px">Выигрыш — по числу совпадений в Поле 1 и Поле 2. Все категории, кроме суперприза, фиксированные; множитель увеличивает их пропорционально. Суперприз 4+4 делится поровну между победителями.</div>
+  </div>
+  <div class="card"><table class="table"><thead><tr><td>Поле 1 + Поле 2</td><td>Шанс</td><td>Выигрыш</td></tr></thead><tbody id="prizeRows"></tbody></table></div>
+  <div class="card small" id="rulesNote"></div>
+</section>
+</main>
+
+<div class="footer-note">Ставка фиксируется до тиража и потом не меняется</div>
+</div>
+
+<nav class="nav">
+<button class="active" data-page="home"><span class="nicon">⌂</span>Главная</button>
+<button data-page="table"><span class="nicon">▦</span>Таблица</button>
+<button data-page="results"><span class="nicon">🏆</span>Результаты</button>
+<button data-page="rules"><span class="nicon">▣</span>Правила</button>
+</nav>
+
+<script type="module" src="./app.js?v=1.0.0"></script>
+<script type="module" src="./update-app.js?v=1.0.0"></script>
+<script>
+if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=1.0.0').catch(()=>{}));}
+</script>
+</body></html>

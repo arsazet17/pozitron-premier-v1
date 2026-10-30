@@ -1,0 +1,147 @@
+:root{
+  --bg:#04150e;--card:#0f3a29;--card2:#0b2c1f;--line:#1f5e44;--text:#f2fff8;--muted:#9fc2b2;
+  --gold:#ebbd52;--gold2:#fff1bf;--mint:#5fe0a8;--green:#4fe07a;--red:#ff7b7b;--shadow:0 18px 45px #0008
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  background:#020c08 radial-gradient(circle at 70% 0,#0f4a33 0,#06201a 45%,#020c08 100%) fixed;color:var(--text)}
+button{font:inherit;cursor:pointer}
+.app{max-width:780px;margin:0 auto;min-height:100vh;padding-bottom:100px}
+.top{padding:20px 18px 10px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{width:52px;height:52px;border-radius:14px;flex:none;box-shadow:0 6px 18px #0009}
+.title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.title{font-size:clamp(1.45rem,6.4vw,2.4rem);font-weight:900;line-height:1.05;letter-spacing:-.01em}
+.top .title{background:linear-gradient(180deg,var(--gold2),var(--gold) 60%,#c48c25);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:#86ad9c;font-size:.98rem;margin-top:5px}
+.page{display:none;padding:0 16px 24px}.page.active{display:block}
+.page>.title{font-size:1.8rem;margin-top:6px}
+.card{background:linear-gradient(150deg,#114431,#0a2a1e);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:16px;margin:14px 0}
+.strip.two{display:grid;grid-template-columns:1fr 1fr;padding:12px 4px}
+.strip>div{padding:6px 12px;border-right:1px solid #1d5a41;min-width:0}.strip>div:last-child{border:0}
+.k{color:var(--muted);font-size:.85rem}.v{font-size:1.05rem;font-weight:850;margin:6px 0}
+.small{font-size:.85rem;color:var(--muted);line-height:1.4}
+.gold{color:var(--gold)}.mint{color:var(--mint)}.ok{color:var(--green)}.no{color:#5f8574}.red{color:var(--red)}
+.sec-title{font-size:1.18rem;font-weight:900;margin:2px 0 12px}
+
+/* шары */
+.balls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ball{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:.92rem;flex:none}
+.ball.f1{background:radial-gradient(circle at 35% 30%,#fff7d6,#ebbd52 60%,#b17d1c);color:#3a2604}
+.ball.f2{background:radial-gradient(circle at 35% 30%,#e3fff1,#5fe0a8 60%,#1f9a66);color:#06301f}
+.balls.big .ball{width:clamp(48px,14vw,62px);height:clamp(48px,14vw,62px);font-size:clamp(1.3rem,5.6vw,1.75rem);box-shadow:0 6px 16px #0008,inset 0 -3px 6px #0003}
+.fields-mini{display:grid;gap:5px;margin-top:6px}
+.fields-mini .balls{gap:4px}.fields-mini .ball{width:26px;height:26px;font-size:.82rem}
+
+/* ставка */
+.bet-card{background:radial-gradient(circle at 85% 0,#1d6a4b 0,#0f3a29 55%,#0a2a1e 100%);border-color:#2f7a5a}
+.bet-field{display:flex;align-items:center;gap:12px;margin:10px 0}
+.bet-label{width:58px;flex:none;color:var(--muted);font-weight:800;font-size:.9rem}
+.reserve{display:grid;gap:4px;margin:12px 0 4px;font-size:.85rem;color:var(--muted)}
+.reserve .chip{display:inline-grid;place-items:center;min-width:26px;height:24px;padding:0 5px;border-radius:8px;border:1px solid #2c6a50;color:#cfe9dc;font-weight:800;margin-right:3px;font-size:.82rem}
+.bet-info{margin-top:10px;padding-top:10px;border-top:1px solid #1d5a41;font-size:.9rem;line-height:1.5}
+.bet-info b{color:var(--gold)}
+
+/* сегменты */
+.seg{display:grid;grid-template-columns:repeat(4,1fr);background:#06231a;border:1px solid #1d5a41;border-radius:12px;padding:3px;margin-bottom:12px}
+.seg.two-seg{grid-template-columns:1fr 1fr}.seg.three-seg{grid-template-columns:repeat(3,1fr)}
+.seg button{border:0;background:transparent;color:#9fc2b2;padding:8px 4px;border-radius:9px;font-weight:750;font-size:.9rem}
+.seg button.on{background:#1d6447;color:#fff}
+
+/* AI методы */
+.ai-head,.ai-row{display:grid;grid-template-columns:1fr 66px 40px 46px;gap:8px;align-items:center}
+.ai-head{font-size:.75rem;color:var(--muted);padding:0 0 6px;border-bottom:1px solid #1d5a41}
+.ai-head span:nth-child(n+3),.ai-row .num{text-align:right}
+.ai-row{padding:9px 0;border-bottom:1px solid #16493a;font-size:.92rem}
+.ai-row:last-child{border:0}
+.ai-row .nm{min-width:0}.ai-row .nm b{display:block}
+.ai-row .nm span{font-size:.74rem;color:var(--muted);display:block;line-height:1.25}
+.ai-row.lead{background:linear-gradient(90deg,#ebbd5222,transparent);border-radius:10px}
+.wbar{height:8px;border-radius:5px;background:#06231a;overflow:hidden;position:relative}
+.wbar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#b17d1c,var(--gold));border-radius:5px}
+.wcell{display:grid;gap:3px}.wcell span{font-size:.78rem;text-align:right;font-weight:800}
+.up{color:var(--green)}.down{color:#d98d8d}
+
+/* счёт */
+.score{display:grid;gap:0;margin-bottom:6px}
+.score-row{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:9px 0;border-bottom:1px solid #16493a}
+.score-row:last-child{border:0}
+.score-row b{font-size:1.15rem;white-space:nowrap}
+.score-row .small{display:block}
+.cats{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.cat{border:1px solid #2c6a50;border-radius:9px;padding:3px 7px;font-size:.8rem;color:#cfe9dc}
+.cat b{color:var(--gold);font-size:.82rem}
+.live-score{margin-top:12px;padding:12px;border-radius:14px;background:#06231a;border:1px solid #1d5a41;font-size:.9rem;line-height:1.5}
+
+/* последние тиражи */
+.lrow{display:grid;grid-template-columns:54px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #16493a}
+.lrow:last-child{border:0}
+.lrow .no{color:var(--muted);font-size:.78rem;line-height:1.25}
+.lrow .no b{color:var(--text);font-size:.85rem;display:block}
+.lrow .fields-mini{margin:0}
+.ball.aim{box-shadow:0 0 0 2px #04150e,0 0 0 4px #cfe9dc}
+.ball.hitb{box-shadow:0 0 0 2px #04150e,0 0 0 4px var(--green)}
+.ball.miss-aim{background:transparent;color:#cfe9dc;border:2px dashed #4e8a70}
+.res-badge{font-weight:900;font-size:.95rem;text-align:right;white-space:nowrap}
+.res-badge.win{color:var(--green)}.res-badge.lose{color:#6f9583}
+.res-badge .small{display:block;font-weight:600}
+
+/* таблица */
+.tbl-card{padding:12px 6px;margin-left:-6px;margin-right:-6px}
+.grid-wrap{overflow-x:auto}
+.grid{display:grid;grid-template-columns:30px repeat(20,minmax(12px,1fr));gap:2px 1.5px;font-size:.6rem}
+.grid .h{color:var(--muted);text-align:center;font-weight:800;padding:2px 0;font-size:.56rem}
+.grid .lab{color:var(--muted);font-size:.56rem;display:flex;align-items:center;justify-content:flex-end;padding-right:3px;white-space:nowrap}
+.grid .c{height:17px;border-radius:4px;background:#0a2a1e;display:grid;place-items:center;font-weight:800;color:transparent;position:relative}
+.grid .c.drawn{background:#c79a3a;color:#2a1a02}
+.grid.f2 .c.drawn{background:#3fb685;color:#032016}
+.grid .c.hit{background:var(--green)!important;color:#032016!important}
+.grid .c.aim{box-shadow:inset 0 0 0 1.5px #8fc7ad}
+.grid .c.rep::before{content:'';position:absolute;left:50%;top:-3px;width:3px;height:4px;margin-left:-1.5px;background:#fff;border-radius:2px}
+.grid .ai .c{background:#06231a}
+.grid .ai .c.pick{background:transparent;box-shadow:inset 0 0 0 2px var(--gold);color:var(--gold)}
+.grid .ai .c.res{box-shadow:inset 0 0 0 1px #4e8a70;color:#7fb39b}
+.grid .row{display:contents}
+.grid .sep{grid-column:1/-1;height:6px}
+.grid .foot{color:#cfe9dc;text-align:center;font-weight:700;font-size:.6rem}
+.grid .foot.hot{color:var(--gold)}.grid .foot.cold{color:#7fb3ff}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:.78rem;color:var(--muted)}
+.legend .lg{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;margin-right:4px;position:relative}
+.lg.drawn{background:#c79a3a}.lg.hit{background:var(--green)}.lg.aim{box-shadow:inset 0 0 0 1.5px #8fc7ad;background:#0a2a1e}
+.lg.rep{background:#c79a3a}.lg.rep::before{content:'';position:absolute;left:5px;top:-3px;width:3px;height:4px;background:#fff;border-radius:2px}
+
+/* результаты */
+.res-card{border-radius:18px;padding:12px 14px;margin:10px 0;border:1px solid #1d5a41;background:#0a2a1e}
+.res-card.win{background:linear-gradient(140deg,#17583c,#0d3a28);border:2px solid var(--green);box-shadow:0 0 0 1px #4fe07a33,0 10px 30px #0007}
+.res-card.lose{opacity:.82}
+.res-card.wait{border-style:dashed;border-color:#2f7a5a}
+.res-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.res-top b{font-size:.98rem}
+.res-tag{font-weight:900;font-size:1rem;white-space:nowrap}
+.res-card.win .res-tag{color:var(--green)}.res-card.lose .res-tag{color:#6f9583}.res-card.wait .res-tag{color:var(--gold)}
+.res-line{display:flex;align-items:center;gap:8px;margin:5px 0}
+.res-line .bet-label{width:52px;font-size:.8rem}
+.res-fact{font-size:.78rem;color:var(--muted);margin-top:6px}
+
+/* правила */
+.table{width:100%;border-collapse:collapse;font-size:.92rem}
+.table td{padding:8px 6px;border-bottom:1px solid #16493a}
+.table thead td{color:var(--muted);font-size:.78rem}
+.table td:nth-child(2),.table td:nth-child(3){text-align:right;white-space:nowrap}
+.table tr.jprow td{color:var(--gold);font-weight:800}
+.notice{line-height:1.5}
+
+/* низ */
+.footer-note{text-align:center;color:#5f8574;font-size:.8rem;margin:10px 16px 0}
+.nav{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:#03110bf2;border-top:1px solid #1d5a41;padding:6px 6px calc(6px + env(safe-area-inset-bottom));backdrop-filter:blur(10px);z-index:50}
+.nav button{border:0;background:transparent;color:#86ad9c;display:grid;gap:2px;justify-items:center;font-size:.76rem;font-weight:700;padding:6px 0}
+.nav button.active{color:var(--gold)}
+.nicon{font-size:1.25rem;line-height:1}
+.err{color:#ffb7b7}
+@media (max-width:380px){
+  .page{padding:0 10px 24px}
+  .ai-head,.ai-row{grid-template-columns:1fr 58px 38px 42px;gap:6px}
+  .strip>div{padding:6px 8px}
+}
+.bell{font-size:1.7rem;flex:none}
+#liveSummary b,.live-score b{white-space:nowrap}

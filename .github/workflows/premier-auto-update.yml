@@ -1,0 +1,93 @@
+name: Premier Auto Update
+
+# Запускается снаружи через cron-job.org (workflow_dispatch) каждые 15 минут,
+# через 3–4 минуты после тиража (тиражи в :08, :23, :38, :53).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: premier-auto-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Sync main before calculation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --ff-only origin main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Download latest Lucky Numbers draws
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          URL='https://lucky-numbers.ru/api/v1/lottery/ru/digital-4x20-premier/results?page=1&limit=20'
+
+          CODE="$(
+            curl -sS \
+              --retry 2 \
+              --retry-delay 2 \
+              --connect-timeout 15 \
+              --max-time 30 \
+              -A 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36' \
+              -H 'Accept: application/json, text/plain, */*' \
+              -H 'Accept-Language: ru-RU,ru;q=0.9,en;q=0.8' \
+              -H 'Referer: https://lucky-numbers.ru/lottery/ru/digital-4x20-premier' \
+              -o /tmp/premier-page1.json \
+              -w '%{http_code}' \
+              "$URL"
+          )"
+
+          echo "Lucky page 1: HTTP ${CODE}"
+
+          if [ "$CODE" != "200" ]; then
+            echo "Lucky API failed"
+            head -c 1200 /tmp/premier-page1.json || true
+            echo
+            exit 1
+          fi
+
+      - name: Update draws, check old bet, fix next bet
+        shell: bash
+        env:
+          LUCKY_PAGE_FILE: /tmp/premier-page1.json
+        run: |
+          set -euo pipefail
+          node scripts/premier-cycle.mjs "$GITHUB_WORKSPACE"
+
+      - name: Commit complete cycle if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- data/; then
+            echo "No new draw and next bet is already fixed"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/premier-archive.csv data/current-forecast.json data/forecast-history.json data/lottery-meta.json data/app-state.json
+          git commit -m "Premier cycle: check bet and fix next bet"
+
+          # Защита, если main изменился во время запуска.
+          git pull --rebase origin main
+          git push origin main
