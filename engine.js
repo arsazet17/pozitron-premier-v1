@@ -176,21 +176,23 @@ const hitsOf=(pick,actual)=>pick.reduce((a,n)=>a+(actual.includes(n)?1:0),0);
 // Таблица из тетради: для каждого числа N (блок) и каждого числа k (столбец 1–20)
 //  • старая версия: нижняя строка блока = N + k (по кругу 1–20), верхняя = N + k − 3;
 //  • новая версия:  нижняя строка = N + k, верхняя идёт назад = N + 1 − k.
-// Ставка на поле: блок N — первое выпавшее число этого поля в прошлом тираже,
-// столбцы k — все 4 числа этого поля в прошлом тираже.
+// Ставка на поле (правило v2, крест-накрест): блок N — первое выпавшее число ДРУГОГО поля
+// в прошлом тираже, столбцы k — все 4 числа ЭТОГО поля в прошлом тираже.
 //  • «Тесла · старая» берёт нижнюю строку: N + k;
 //  • «Тесла · новая»  берёт верхнюю строку: N + 1 − k.
+// Блок берётся из другого поля, чтобы столбец k не совпадал с блоком N сам собой
+// (иначе новая версия всегда давала бы 1, а старая — 2N).
 // Разные k дают разные числа, поэтому в поле всегда ровно 4 числа.
+export const TESLA_RULE = 2;
 export const TESLA = [
   {key:'old', name:'Тесла · старая', short:'Т·ст', note:'N + k'},
   {key:'new', name:'Тесла · новая',  short:'Т·нов', note:'N + 1 − k'}
 ];
 const wrap = x => ((x-1)%NUMS+NUMS)%NUMS+1;
-export function teslaField(last, key){
-  const N=last[0];
-  return last.map(k=>key==='old'?wrap(N+k):wrap(N+1-k)).sort((a,b)=>a-b);
+export function teslaField(N, ks, key){
+  return ks.map(k=>key==='old'?wrap(N+k):wrap(N+1-k)).sort((a,b)=>a-b);
 }
-export const teslaPick = (prevDraw, key) => prevDraw.f.map(f=>teslaField(f,key));
+export const teslaPick = (prevDraw, key) => prevDraw.f.map((f,i)=>teslaField(prevDraw.f[1-i][0], f, key));
 export const teslaPicks = prevDraw => Object.fromEntries(TESLA.map(t=>[t.key, teslaPick(prevDraw,t.key)]));
 
 // Журнал ставок Теслы по архиву: ставка на тираж i строится только по тиражу i−1.

@@ -1,7 +1,7 @@
 {
   "name": "Позитрон Премьер",
   "short_name": "Премьер",
-  "start_url": "./?v=1.0.1",
+  "start_url": "./?v=1.0.2",
   "display": "standalone",
   "background_color": "#04150e",
   "theme_color": "#04150e",
