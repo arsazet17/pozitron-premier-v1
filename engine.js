@@ -172,6 +172,38 @@ export function predict(st){
 
 const hitsOf=(pick,actual)=>pick.reduce((a,n)=>a+(actual.includes(n)?1:0),0);
 
+// ---------- Формула Теслы (4/20 Tesla's formula, Илья К., 2024) ----------
+// Таблица из тетради: для каждого числа N (блок) и каждого числа k (столбец 1–20)
+//  • старая версия: нижняя строка блока = N + k (по кругу 1–20), верхняя = N + k − 3;
+//  • новая версия:  нижняя строка = N + k, верхняя идёт назад = N + 1 − k.
+// Ставка на поле: блок N — первое выпавшее число этого поля в прошлом тираже,
+// столбцы k — все 4 числа этого поля в прошлом тираже.
+//  • «Тесла · старая» берёт нижнюю строку: N + k;
+//  • «Тесла · новая»  берёт верхнюю строку: N + 1 − k.
+// Разные k дают разные числа, поэтому в поле всегда ровно 4 числа.
+export const TESLA = [
+  {key:'old', name:'Тесла · старая', short:'Т·ст', note:'N + k'},
+  {key:'new', name:'Тесла · новая',  short:'Т·нов', note:'N + 1 − k'}
+];
+const wrap = x => ((x-1)%NUMS+NUMS)%NUMS+1;
+export function teslaField(last, key){
+  const N=last[0];
+  return last.map(k=>key==='old'?wrap(N+k):wrap(N+1-k)).sort((a,b)=>a-b);
+}
+export const teslaPick = (prevDraw, key) => prevDraw.f.map(f=>teslaField(f,key));
+export const teslaPicks = prevDraw => Object.fromEntries(TESLA.map(t=>[t.key, teslaPick(prevDraw,t.key)]));
+
+// Журнал ставок Теслы по архиву: ставка на тираж i строится только по тиражу i−1.
+export function teslaLog(draws, key){
+  const log=[];
+  for(let i=1;i<draws.length;i++){
+    const d=draws[i], p=teslaPick(draws[i-1],key);
+    const h1=hitsOf(p[0],d.f[0]), h2=hitsOf(p[1],d.f[1]);
+    log.push({no:d.no, at:d.at, p, h:[h1,h2], pay:prizeOf(h1,h2), jp:isJackpot(h1,h2)});
+  }
+  return log;
+}
+
 // Учёт фактического тиража: сначала оцениваем методы по их прогнозу, потом копим статистику.
 export function update(st, draw, pred){
   const P=st.params;

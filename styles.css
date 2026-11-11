@@ -145,3 +145,21 @@ button{font:inherit;cursor:pointer}
 }
 .bell{font-size:1.7rem;flex:none}
 #liveSummary b,.live-score b{white-space:nowrap}
+
+/* ⚡ Формула Теслы */
+.tesla-card{border-color:#6a5a2a;background:radial-gradient(circle at 85% 0,#3b4a22 0,#123a29 55%,#0a2a1e 100%)}
+.tesla-bet{padding:8px 0;border-bottom:1px solid #1d5a41}
+.tesla-bet:last-child{border:0}
+.tesla-bet .tb-head{display:flex;justify-content:space-between;gap:8px;font-size:.88rem;margin-bottom:6px}
+.tesla-bet .tb-head b{color:var(--gold)}
+.tesla-bet .bet-field{margin:4px 0}
+.cmp{width:100%;border-collapse:collapse;font-size:clamp(.68rem,3.1vw,.84rem);margin:2px 0 6px;table-layout:fixed}
+.cmp td{padding:6px 2px;border-bottom:1px solid #16493a;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp td:first-child{width:27%;overflow:visible;hyphens:auto;overflow-wrap:anywhere}
+.cmp .exp{display:block;font-size:.85em;color:var(--muted)}
+.cmp td:first-child{text-align:left;color:var(--muted);white-space:normal}
+.cmp thead td{color:var(--gold);font-weight:800;font-size:.78rem}
+.res-tesla{margin-top:8px;padding-top:6px;border-top:1px dashed #2f7a5a}
+.res-tesla .res-line{flex-wrap:wrap}
+.res-tesla .t-res{margin-left:auto;font-weight:800;font-size:.8rem;white-space:nowrap}
+.res-tesla .t-res.win{color:var(--green)}.res-tesla .t-res.lose{color:#6f9583}

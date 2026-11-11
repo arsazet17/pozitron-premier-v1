@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {parseArchive, replay, prizeOf, hitsOf, pad6, nextDrawOf, PRIZES, FIELD_P, WIN_CHANCE, FIXED_EV} from '../engine.js';
+import {parseArchive, replay, prizeOf, hitsOf, pad6, nextDrawOf, PRIZES, FIELD_P, WIN_CHANCE, FIXED_EV, teslaField, teslaPicks} from '../engine.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let fails = 0;
@@ -20,6 +20,15 @@ ok(Math.abs(WIN_CHANCE - 0.04874) < 1e-4, `шанс выигрыша ≈ 4,87% (
 ok(Math.abs(FIXED_EV - 26.2005) < 1e-3, `средний фиксированный выигрыш ≈ 26,20 ₽ (${FIXED_EV.toFixed(4)})`);
 ok(prizeOf(2, 2) === 500 && prizeOf(3, 3) === 750 && prizeOf(4, 3) === 50000 && prizeOf(1, 1) === 0 && prizeOf(2, 1) === 0, 'таблица выплат');
 ok(Object.keys(PRIZES).length === 16, '16 фиксированных категорий');
+
+// --- Формула Теслы: строки тетради
+// Блок 1, столбцы 1–4: старая (низ) 2 3 4 5; новая (верх) 1 20 19 18. Блок 20, столбцы 1–3: новая (верх) 20 19 18.
+ok(JSON.stringify(teslaField([1, 2, 3, 4], 'old')) === '[2,3,4,5]', 'старая, блок 1: 2 3 4 5 — как в тетради');
+ok(JSON.stringify(teslaField([5, 9, 12, 15], 'old')) === '[10,14,17,20]', 'старая: 5 9 12 15 → 10 14 17 20');
+ok(JSON.stringify(teslaField([5, 9, 12, 15], 'new')) === '[1,11,14,17]', 'новая: 5 9 12 15 → 1 11 14 17');
+ok(JSON.stringify(teslaField([1, 2, 3, 4], 'new')) === '[1,18,19,20]', 'новая, блок 1: 1 20 19 18 — как в тетради');
+ok(JSON.stringify(teslaField([20, 1, 2, 3], 'new')) === '[1,18,19,20]', 'новая, блок 20: столбец 20 → 1, столбцы 1–3 → 20 19 18');
+ok([...Array(300)].every((_, i) => { const f = [1 + i % 20, 1 + (i * 7 + 3) % 20, 1 + (i * 3 + 11) % 20, 1 + (i * 13 + 5) % 20]; if (new Set(f).size < 4) return true; return ['old', 'new'].every(k => new Set(teslaField(f, k)).size === 4); }), 'в каждом поле Теслы ровно 4 разных числа');
 
 // --- Копия данных без последних 3 тиражей
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'premier-audit-'));
@@ -62,6 +71,7 @@ ok(t1.no === hold[0].no, `следующий тираж — №${pad6(t1.no)}`);
 let out = run(minus(t1.at, 10));
 let cur = readJ('current-forecast.json');
 ok(cur && cur.no === t1.no && cur.locked, 'ставка зафиксирована до тиража');
+ok(JSON.stringify(cur.tesla) === JSON.stringify(teslaPicks(lastBase)), 'ставки Теслы зафиксированы по последнему тиражу');
 const expected = replay(base).state;
 const {predict} = await import(path.join(tmp, 'engine.js'));
 const p = predict(expected);
@@ -81,6 +91,10 @@ const e1 = hist.find(e => e.no === hold[0].no);
 const h = [hitsOf(e1.p[0], hold[0].f[0]), hitsOf(e1.p[1], hold[0].f[1])];
 ok(e1.res && e1.res.h[0] === h[0] && e1.res.h[1] === h[1], `попадания посчитаны верно (${h[0]}+${h[1]})`);
 ok(e1.res.pay === prizeOf(h[0], h[1]), `выплата посчитана верно (${e1.res.pay} ₽)`);
+for (const k of ['old', 'new']) {
+  const tp = e1.tesla[k], th = [hitsOf(tp[0], hold[0].f[0]), hitsOf(tp[1], hold[0].f[1])];
+  ok(e1.res.tesla[k].h.join('+') === th.join('+') && e1.res.tesla[k].pay === prizeOf(th[0], th[1]), `Тесла ${k}: ${th[0]}+${th[1]} · ${e1.res.tesla[k].pay} ₽`);
+}
 cur = readJ('current-forecast.json');
 ok(cur.no === hold[1].no, `новая ставка на №${pad6(hold[1].no)}`);
 
@@ -98,6 +112,9 @@ ok(st.live.summary.n === 2, 'живой счёт: 2 ставки');
 ok(st.recent[0].live && st.recent[0].no === hold[1].no, 'последний тираж помечен как живой');
 ok(st.numbers[0].length === 20 && st.numbers[1].length === 20, 'статистика чисел по обоим полям');
 ok(st.backtest.all.n > 30000, `проверка по архиву: ${st.backtest.all.n} ставок`);
+ok(st.tesla && st.tesla.live.old.n === 2 && st.tesla.live.new.n === 2, 'живой счёт Теслы: по 2 ставки');
+ok(st.tesla.backtest.old.all.n === base.length + 1, `Тесла по архиву: ${st.tesla.backtest.old.all.n} ставок`);
+ok(st.tesla.recent.length === 20 && st.tesla.recent[0].no === hold[1].no, 'последние тиражи Теслы');
 const meta = readJ('lottery-meta.json');
 ok(meta.jackpot === 23000000, 'джекпот взят со страницы Lucky');
 
