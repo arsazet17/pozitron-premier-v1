@@ -8,10 +8,11 @@ import path from 'node:path';
 import {
   parseArchive, pad6, nextDrawOf, replay, predict, summarize,
   EXPERTS, MODEL_VERSION, hitsOf, prizeOf, isJackpot,
-  FIXED_EV, WIN_CHANCE, TICKET, BASE_HITS, NUMS, PARAMS
+  FIXED_EV, WIN_CHANCE, TICKET, BASE_HITS, NUMS, PARAMS,
+  TESLA, teslaPicks, teslaLog
 } from '../engine.js';
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.0.1';
 
 const ROOT = path.resolve(process.argv[2] || process.cwd());
 const DATA = path.join(ROOT, 'data');
@@ -109,6 +110,15 @@ for (const e of history) {
   const h = [hitsOf(e.p[0], d.f[0]), hitsOf(e.p[1], d.f[1])];
   e.res = {f: d.f, h, pay: prizeOf(h[0], h[1]), jp: isJackpot(h[0], h[1]), at: d.at};
   console.log(`CHECKED №${pad6(e.no)}: ${h[0]}+${h[1]} · ${e.res.pay ? 'выигрыш ' + e.res.pay + ' ₽' : 'мимо'}`);
+  // Ставки по формуле Теслы, зафиксированные вместе с AI-ставкой.
+  if (e.tesla) {
+    e.res.tesla = {};
+    for (const [k, p] of Object.entries(e.tesla)) {
+      const th = [hitsOf(p[0], d.f[0]), hitsOf(p[1], d.f[1])];
+      e.res.tesla[k] = {h: th, pay: prizeOf(th[0], th[1]), jp: isJackpot(th[0], th[1])};
+      console.log(`CHECKED TESLA ${k} №${pad6(e.no)}: ${th[0]}+${th[1]} · ${e.res.tesla[k].pay ? 'выигрыш ' + e.res.tesla[k].pay + ' ₽' : 'мимо'}`);
+    }
+  }
 }
 
 // 2) Прогон AI по всему архиву «вперёд» + статистика методов.
@@ -121,6 +131,8 @@ const {state, log} = replay(draws, PARAMS, (row, pred, st, d) => {
 });
 const pred = predict(state);
 console.log(`Replay: ${log.length} ставок за ${Date.now() - t0} мс`);
+const teslaNext = teslaPicks(last);   // ставки Теслы на следующий тираж — по последнему тиражу
+const teslaLogs = Object.fromEntries(TESLA.map(t => [t.key, teslaLog(draws, t.key)]));
 
 const leadOf = w => EXPERTS[w.indexOf(Math.max(...w))].key;
 const packForecast = p => p.fields.map(f => ({
@@ -138,13 +150,15 @@ if (current && current.no === target.no) {
 } else if (now < atToDate(target.at)) {
   current = {
     no: target.no, at: target.at, fixedAt: now.toISOString(), model: MODEL_VERSION,
-    locked: true, fields: packForecast(pred)
+    locked: true, fields: packForecast(pred), tesla: teslaNext
   };
   history.push({
     no: target.no, at: target.at, fixedAt: current.fixedAt,
-    p: current.fields.map(f => f.pick), lead: current.fields.map(f => f.lead)
+    p: current.fields.map(f => f.pick), lead: current.fields.map(f => f.lead),
+    tesla: teslaNext
   });
   console.log(`FORECAST_FIXED №${pad6(target.no)} ${target.at}: ${current.fields[0].pick.join('-')} + ${current.fields[1].pick.join('-')}`);
+  for (const t of TESLA) console.log(`TESLA_FIXED ${t.key} №${pad6(target.no)}: ${teslaNext[t.key][0].join('-')} + ${teslaNext[t.key][1].join('-')}`);
 } else {
   console.log(`LATE: тираж №${pad6(target.no)} (${target.at}) уже должен был пройти — ставку задним числом не создаём`);
 }
@@ -193,7 +207,21 @@ const recent = tail(log, 120).reverse().map(r => {
 });
 
 const shown = (current && current.no === target.no) ? current : {
-  no: target.no, at: target.at, fixedAt: null, model: MODEL_VERSION, locked: false, fields: packForecast(pred)
+  no: target.no, at: target.at, fixedAt: null, model: MODEL_VERSION, locked: false, fields: packForecast(pred), tesla: teslaNext
+};
+if (!shown.tesla) shown.tesla = teslaNext;
+
+// Формула Теслы: проверка по архиву, живой счёт и последние тиражи.
+const tesla = {
+  bets: shown.tesla,
+  backtest: Object.fromEntries(TESLA.map(t => [t.key,
+    Object.fromEntries(Object.entries(periods).map(([k, n]) => [k, summarize(tail(teslaLogs[t.key], n))]))])),
+  live: Object.fromEntries(TESLA.map(t => [t.key,
+    summarize(history.filter(e => e?.res?.tesla?.[t.key]).map(e => e.res.tesla[t.key]))])),
+  recent: tail(teslaLogs.old, 20).reverse().map((r, i) => {
+    const n = teslaLogs.new.at(-1 - i);
+    return {no: r.no, at: r.at, f: byNo.get(r.no).f, p: {old: r.p, new: n.p}, h: {old: r.h, new: n.h}, pay: {old: r.pay, new: n.pay}};
+  })
 };
 
 const appState = {
@@ -210,7 +238,8 @@ const appState = {
   backtest,
   live: {summary: liveSummary, fixed: history.length, rows: tail(history, 150).reverse()},
   recent,
-  numbers
+  numbers,
+  tesla
 };
 
 writeJson(HISTORY, history, false);

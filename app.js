@@ -1,4 +1,4 @@
-import {EXPERTS,PRIZES,PRIZE_ORDER,catChance,TICKET,FIXED_EV,WIN_CHANCE,pad6} from './engine.js';
+import {EXPERTS,PRIZES,PRIZE_ORDER,catChance,TICKET,FIXED_EV,WIN_CHANCE,pad6,TESLA} from './engine.js';
 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const nf=new Intl.NumberFormat('ru-RU');
@@ -10,7 +10,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 const fmtAt=at=>{if(!at) return '—';const [d,t]=at.split('T');const [,m,dd]=d.split('-');return `${dd}.${m} ${t}`};
 const EX=Object.fromEntries(EXPERTS.map(e=>[e.key,e]));
 
-let S=null, aiField=0, scoreKey='d', tblField=0, tblRows=30;
+let S=null, aiField=0, scoreKey='d', tblField=0, tblRows=30, teslaKey='d';
 
 async function load(){
   const r=await fetch('./data/app-state.json?v='+Date.now(),{cache:'no-store'});
@@ -44,7 +44,7 @@ function renderHome(){
   $('#betInfo').innerHTML=`Билет <b>${rub(S.meta.ticketPrice||TICKET)}</b> · выигрыш примерно <b>${oneIn(WIN_CHANCE)}</b> тиражей (${pct(WIN_CHANCE)})`+
     (jp?`<br>Суперприз 4+4: <b>${rub(jp)}</b>`:'')+
     `<br>Ведут: ${lead[0].icon} ${lead[0].name} (поле 1) · ${lead[1].icon} ${lead[1].name} (поле 2)`;
-  renderAI(); renderScore(); renderLast();
+  renderAI(); renderScore(); renderLast(); renderTesla();
 }
 
 function tick(){
@@ -103,6 +103,35 @@ function renderLast(){
   }).join('');
 }
 
+// ⚡ Формула Теслы: ставки на следующий тираж и сравнение с AI
+function renderTesla(){
+  const T=S.tesla, F=S.forecast;
+  if(!T){$('.tesla-card').style.display='none';return}
+  $('#teslaTarget').textContent=`№${pad6(F.no)} · ${F.at.slice(11,16)}`;
+  const bets=F.tesla||T.bets;
+  $('#teslaBets').innerHTML=TESLA.map(t=>`<div class="tesla-bet">
+    <div class="tb-head"><b>${esc(t.name)}</b><span class="small">${esc(t.note)}</span></div>
+    ${bets[t.key].map((p,f)=>`<div class="bet-field"><div class="bet-label">Поле ${f+1}</div><div class="balls">${p.map(n=>ball(n,f)).join('')}</div></div>`).join('')}
+  </div>`).join('');
+  const cols=[{name:'AI',s:S.backtest[teslaKey]},...TESLA.map(t=>({name:t.short,s:T.backtest[t.key][teslaKey]}))];
+  if(!cols[1].s?.n){$('#teslaScore').innerHTML='<div class="small">Пока нет данных</div>';return}
+  const row=(lab,fn)=>`<tr><td>${lab}</td>${cols.map(c=>`<td>${fn(c.s)}</td>`).join('')}</tr>`;
+  const net=s=>{const v=s.pay-s.spent;return `<b class="${v>=0?'ok':'red'}">${v>=0?'+':''}${rub(v)}</b>`};
+  $('#teslaScore').innerHTML=`<table class="cmp"><thead><tr><td></td>${cols.map(c=>`<td>${c.name}</td>`).join('')}</tr></thead><tbody>
+    ${row('Ставок',s=>nf.format(s.n))}
+    ${row('Выигрышей',s=>`${nf.format(s.wins)}<span class="exp">случ. ${nf.format(Math.round(s.expWins))}</span>`)}
+    ${row('Выплачено',s=>`<span class="gold">${rub(s.pay)}</span>`)}
+    ${row('Итог',net)}
+    ${row('Возврат',s=>pct(s.spent?s.pay/s.spent:0))}
+    ${row('Угадано',s=>`${dec(s.avgHits[0])} / ${dec(s.avgHits[1])}`)}
+  </tbody></table>
+  <div class="small">«случ.» — сколько выигрышей было бы у случайной ставки. Она угадывает ${dec(S.baseline.hits)} числа в поле, возврат ≈ ${pct(FIXED_EV/TICKET)}.</div>`;
+  const L=TESLA.map(t=>({t,s:T.live[t.key]})).filter(x=>x.s.n);
+  $('#teslaLive').innerHTML=L.length
+    ?'🔒 <b>Живой счёт</b> (ставки зафиксированы до тиража):<br>'+L.map(({t,s})=>`${esc(t.name)}: ${nf.format(s.n)} ставок · выигрышей <b class="ok">${s.wins}</b> · выплачено <b class="gold">${rub(s.pay)}</b> из ${rub(s.spent)}`).join('<br>')
+    :'🔒 <b>Живой счёт</b> Теслы начнётся после первого проверенного тиража.';
+}
+
 function renderTable(){
   const f=tblField, rows=S.recent.slice(0,tblRows);
   const g=$('#grid'); g.className='grid f'+(f+1);
@@ -149,15 +178,29 @@ function renderResults(){
     if(!e.res){
       return `<div class="res-card wait"><div class="res-top"><b>№${pad6(e.no)} · ${fmtAt(e.at)}</b><span class="res-tag">⏳ ждём тираж</span></div>
         ${e.p.map((p,f)=>`<div class="res-line"><span class="bet-label">Поле ${f+1}</span><div class="balls">${p.map(n=>ball(n,f)).join('')}</div></div>`).join('')}
+        ${teslaLines(e,null)}
         <div class="res-fact">Зафиксировано в ${fixed}</div></div>`;
     }
     const R=e.res, win=R.pay>0||R.jp;
     return `<div class="res-card ${win?'win':'lose'}">
       <div class="res-top"><b>№${pad6(e.no)} · ${fmtAt(e.at)}</b><span class="res-tag">${win?(R.jp?'🏆 СУПЕРПРИЗ':'✅ +'+rub(R.pay)):'мимо'} · ${R.h[0]}+${R.h[1]}</span></div>
       ${e.p.map((p,f)=>`<div class="res-line"><span class="bet-label">Поле ${f+1}</span><div class="balls">${p.map(n=>ball(n,f,R.f[f].includes(n)?'hitb':'miss-aim')).join('')}</div></div>`).join('')}
+      ${teslaLines(e,R)}
       <div class="res-fact">Выпало: ${R.f.map(x=>[...x].sort((a,b)=>a-b).join(' ')).join(' + ')} · зафиксировано в ${fixed}</div>
     </div>`;
   }).join('');
+}
+
+// Строки ставок Теслы в карточке результата
+function teslaLines(e,R){
+  if(!e.tesla) return '';
+  return `<div class="res-tesla">${TESLA.map(t=>{
+    const p=e.tesla[t.key]; if(!p) return '';
+    const r=R?.tesla?.[t.key], win=r&&(r.pay>0||r.jp);
+    const tag=r?`<span class="t-res ${win?'win':'lose'}">${r.h[0]}+${r.h[1]} · ${win?(r.jp?'🏆':'+'+rub(r.pay)):'мимо'}</span>`:'';
+    return `<div class="small" style="margin-top:4px">⚡ ${esc(t.name)}</div>`+
+      p.map((x,f)=>`<div class="res-line"><span class="bet-label">Поле ${f+1}</span><div class="balls">${x.map(n=>ball(n,f,R?(R.f[f].includes(n)?'hitb':'miss-aim'):'')).join('')}</div>${f===1?tag:''}</div>`).join('');
+  }).join('')}</div>`;
 }
 
 function renderRules(){
@@ -168,6 +211,13 @@ function renderRules(){
   $('#rulesNote').innerHTML=`Выиграть хоть что-то: <b class="gold">${oneIn(WIN_CHANCE)}</b> (${pct(WIN_CHANCE)}). Чаще всего — 2 + 2 (${oneIn(catChance('2+2'))}).<br>
     В среднем билет за 50 ₽ возвращает ≈ <b>${rub(FIXED_EV)}</b> фиксированными выигрышами (${pct(FIXED_EV/TICKET)}) плюс небольшая доля суперприза.<br>
     Можно отметить больше 4 чисел в поле — это системная ставка: каждая комбинация 4+4 стоит 50 ₽, средний возврат тот же.`;
+  $('#teslaRules').innerHTML=`<div class="sec-title">⚡ Формула Теслы</div>
+    По таблице «4/20 Tesla's formula» (Илья К., 2024). В блоке N под числом k стоят два числа:
+    в старой версии — <b>N + k</b> внизу и N + k − 3 вверху, в новой — N + k внизу и <b>N + 1 − k</b> вверху (после 20 счёт идёт снова с 1).<br>
+    Как приложение строит ставку на каждое поле: блок N — <b>первое выпавшее число</b> этого поля в прошлом тираже, столбцы k — все 4 числа поля.
+    «Тесла · старая» берёт числа N + k, «Тесла · новая» — N + 1 − k.<br>
+    Пример: в поле выпало 5, 9, 12, 15 → N = 5 → старая: 10, 14, 17, 20; новая: 1, 17, 14, 11 → 1, 11, 14, 17.<br>
+    Ставки Теслы фиксируются вместе с AI-ставкой до тиража и проверяются так же.`;
 }
 
 function bindSeg(sel,attr,fn){
@@ -199,6 +249,7 @@ async function refresh(){
 bindNav();
 bindSeg('#aiSeg','f',v=>{aiField=+v;renderAI()});
 bindSeg('#scoreSeg','k',v=>{scoreKey=v;renderScore()});
+bindSeg('#teslaSeg','k',v=>{teslaKey=v;if(S) renderTesla()});
 bindSeg('#tblField','f',v=>{tblField=+v;renderTable()});
 bindSeg('#tblRows','n',v=>{tblRows=+v;renderTable()});
 renderRules();

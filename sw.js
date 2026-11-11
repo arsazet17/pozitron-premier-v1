@@ -1,15 +1,15 @@
-const C='pozitron-premier-v1.0.0';
+const C='pozitron-premier-v1.0.1';
 
 const STATIC=[
-  './?v=1.0.0',
-  './index.html?v=1.0.0',
-  './styles.css?v=1.0.0',
-  './update-app.css?v=1.0.0',
-  './app.js?v=1.0.0',
-  './update-app.js?v=1.0.0',
+  './?v=1.0.1',
+  './index.html?v=1.0.1',
+  './styles.css?v=1.0.1',
+  './update-app.css?v=1.0.1',
+  './app.js?v=1.0.1',
+  './update-app.js?v=1.0.1',
   './engine.js',
-  './manifest.webmanifest?v=1.0.0',
-  './icons/icon-192.png?v=1.0.0'
+  './manifest.webmanifest?v=1.0.1',
+  './icons/icon-192.png?v=1.0.1'
 ];
 
 self.addEventListener('install',e=>{
@@ -44,7 +44,7 @@ self.addEventListener('fetch',e=>{
       .catch(async()=>{
         const hit=await caches.match(e.request,{ignoreSearch:url.pathname.endsWith('.json')});
         if(hit) return hit;
-        if(e.request.mode==='navigate') return (await caches.match('./index.html?v=1.0.0'))||caches.match('./?v=1.0.0');
+        if(e.request.mode==='navigate') return (await caches.match('./index.html?v=1.0.1'))||caches.match('./?v=1.0.1');
         throw new Error('offline and no cache');
       })
   );
