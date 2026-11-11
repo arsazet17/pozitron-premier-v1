@@ -9,10 +9,10 @@ import {
   parseArchive, pad6, nextDrawOf, replay, predict, summarize,
   EXPERTS, MODEL_VERSION, hitsOf, prizeOf, isJackpot,
   FIXED_EV, WIN_CHANCE, TICKET, BASE_HITS, NUMS, PARAMS,
-  TESLA, teslaPicks, teslaLog
+  TESLA, TESLA_RULE, teslaPicks, teslaLog
 } from '../engine.js';
 
-export const APP_VERSION = '1.0.1';
+export const APP_VERSION = '1.0.2';
 
 const ROOT = path.resolve(process.argv[2] || process.cwd());
 const DATA = path.join(ROOT, 'data');
@@ -150,12 +150,12 @@ if (current && current.no === target.no) {
 } else if (now < atToDate(target.at)) {
   current = {
     no: target.no, at: target.at, fixedAt: now.toISOString(), model: MODEL_VERSION,
-    locked: true, fields: packForecast(pred), tesla: teslaNext
+    locked: true, fields: packForecast(pred), tesla: teslaNext, teslaRule: TESLA_RULE
   };
   history.push({
     no: target.no, at: target.at, fixedAt: current.fixedAt,
     p: current.fields.map(f => f.pick), lead: current.fields.map(f => f.lead),
-    tesla: teslaNext
+    tesla: teslaNext, teslaRule: TESLA_RULE
   });
   console.log(`FORECAST_FIXED №${pad6(target.no)} ${target.at}: ${current.fields[0].pick.join('-')} + ${current.fields[1].pick.join('-')}`);
   for (const t of TESLA) console.log(`TESLA_FIXED ${t.key} №${pad6(target.no)}: ${teslaNext[t.key][0].join('-')} + ${teslaNext[t.key][1].join('-')}`);
@@ -209,15 +209,16 @@ const recent = tail(log, 120).reverse().map(r => {
 const shown = (current && current.no === target.no) ? current : {
   no: target.no, at: target.at, fixedAt: null, model: MODEL_VERSION, locked: false, fields: packForecast(pred), tesla: teslaNext
 };
-if (!shown.tesla) shown.tesla = teslaNext;
+if (!shown.tesla || shown.teslaRule !== TESLA_RULE) { shown.tesla = teslaNext; shown.teslaRule = TESLA_RULE; }
 
 // Формула Теслы: проверка по архиву, живой счёт и последние тиражи.
 const tesla = {
+  rule: TESLA_RULE,
   bets: shown.tesla,
   backtest: Object.fromEntries(TESLA.map(t => [t.key,
     Object.fromEntries(Object.entries(periods).map(([k, n]) => [k, summarize(tail(teslaLogs[t.key], n))]))])),
   live: Object.fromEntries(TESLA.map(t => [t.key,
-    summarize(history.filter(e => e?.res?.tesla?.[t.key]).map(e => e.res.tesla[t.key]))])),
+    summarize(history.filter(e => e.teslaRule === TESLA_RULE && e?.res?.tesla?.[t.key]).map(e => e.res.tesla[t.key]))])),
   recent: tail(teslaLogs.old, 20).reverse().map((r, i) => {
     const n = teslaLogs.new.at(-1 - i);
     return {no: r.no, at: r.at, f: byNo.get(r.no).f, p: {old: r.p, new: n.p}, h: {old: r.h, new: n.h}, pay: {old: r.pay, new: n.pay}};

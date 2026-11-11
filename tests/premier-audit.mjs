@@ -22,13 +22,22 @@ ok(prizeOf(2, 2) === 500 && prizeOf(3, 3) === 750 && prizeOf(4, 3) === 50000 && 
 ok(Object.keys(PRIZES).length === 16, '16 фиксированных категорий');
 
 // --- Формула Теслы: строки тетради
-// Блок 1, столбцы 1–4: старая (низ) 2 3 4 5; новая (верх) 1 20 19 18. Блок 20, столбцы 1–3: новая (верх) 20 19 18.
-ok(JSON.stringify(teslaField([1, 2, 3, 4], 'old')) === '[2,3,4,5]', 'старая, блок 1: 2 3 4 5 — как в тетради');
-ok(JSON.stringify(teslaField([5, 9, 12, 15], 'old')) === '[10,14,17,20]', 'старая: 5 9 12 15 → 10 14 17 20');
-ok(JSON.stringify(teslaField([5, 9, 12, 15], 'new')) === '[1,11,14,17]', 'новая: 5 9 12 15 → 1 11 14 17');
-ok(JSON.stringify(teslaField([1, 2, 3, 4], 'new')) === '[1,18,19,20]', 'новая, блок 1: 1 20 19 18 — как в тетради');
-ok(JSON.stringify(teslaField([20, 1, 2, 3], 'new')) === '[1,18,19,20]', 'новая, блок 20: столбец 20 → 1, столбцы 1–3 → 20 19 18');
-ok([...Array(300)].every((_, i) => { const f = [1 + i % 20, 1 + (i * 7 + 3) % 20, 1 + (i * 3 + 11) % 20, 1 + (i * 13 + 5) % 20]; if (new Set(f).size < 4) return true; return ['old', 'new'].every(k => new Set(teslaField(f, k)).size === 4); }), 'в каждом поле Теслы ровно 4 разных числа');
+// Строки тетради: старая (низ) блок 1 → 2 3 4 5 …; новая (верх) блок 1 → 1 20 19 18 …; блок 20 → 20 19 18 … 1
+ok(JSON.stringify(teslaField(1, [1, 2, 3, 4], 'old')) === '[2,3,4,5]', 'старая, блок 1: 2 3 4 5 — как в тетради');
+ok(JSON.stringify(teslaField(1, [1, 2, 3, 4], 'new')) === '[1,18,19,20]', 'новая, блок 1: 1 20 19 18 — как в тетради');
+ok(JSON.stringify(teslaField(20, [1, 2, 3, 20], 'new')) === '[1,18,19,20]', 'новая, блок 20: 20 19 18 … 1 — как в тетради');
+// Крест-накрест: 5 9 12 15 + 7 14 15 17
+const ex = {f: [[5, 9, 12, 15], [7, 14, 15, 17]]};
+ok(JSON.stringify(teslaPicks(ex).old) === '[[2,12,16,19],[2,12,19,20]]', 'старая крест-накрест: Поле 1 → 2 12 16 19, Поле 2 → 2 12 19 20');
+ok(JSON.stringify(teslaPicks(ex).new[0]) === '[3,13,16,19]', 'новая крест-накрест: Поле 1 → 3 13 16 19');
+ok(JSON.stringify(teslaPicks(ex).new[1]) === JSON.stringify([5 + 1 - 7, 5 + 1 - 14, 5 + 1 - 15, 5 + 1 - 17].map(x => ((x - 1) % 20 + 20) % 20 + 1).sort((a, b) => a - b)), 'новая крест-накрест: Поле 2 по блоку 5');
+{
+  // На архиве единица больше не стоит в каждой ставке
+  const arch = parseArchive(fs.readFileSync(path.join(ROOT, 'data', 'premier-archive.csv'), 'utf8')).slice(-500);
+  const share = arch.slice(0, -1).filter(d => teslaPicks(d).new.every(f => f.includes(1))).length / 499;
+  ok(share < 0.1, `новая версия: 1 в обоих полях только в ${(share * 100).toFixed(1)}% ставок`);
+}
+ok([...Array(300)].every((_, i) => { const f = [1 + i % 20, 1 + (i * 7 + 3) % 20, 1 + (i * 3 + 11) % 20, 1 + (i * 13 + 5) % 20]; if (new Set(f).size < 4) return true; return ['old', 'new'].every(k => new Set(teslaField(1 + i % 20, f, k)).size === 4); }), 'в каждом поле Теслы ровно 4 разных числа');
 
 // --- Копия данных без последних 3 тиражей
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'premier-audit-'));
@@ -112,7 +121,7 @@ ok(st.live.summary.n === 2, 'живой счёт: 2 ставки');
 ok(st.recent[0].live && st.recent[0].no === hold[1].no, 'последний тираж помечен как живой');
 ok(st.numbers[0].length === 20 && st.numbers[1].length === 20, 'статистика чисел по обоим полям');
 ok(st.backtest.all.n > 30000, `проверка по архиву: ${st.backtest.all.n} ставок`);
-ok(st.tesla && st.tesla.live.old.n === 2 && st.tesla.live.new.n === 2, 'живой счёт Теслы: по 2 ставки');
+ok(st.tesla && st.tesla.rule === 2 && st.tesla.live.old.n === 2 && st.tesla.live.new.n === 2, 'живой счёт Теслы (правило 2): по 2 ставки');
 ok(st.tesla.backtest.old.all.n === base.length + 1, `Тесла по архиву: ${st.tesla.backtest.old.all.n} ставок`);
 ok(st.tesla.recent.length === 20 && st.tesla.recent[0].no === hold[1].no, 'последние тиражи Теслы');
 const meta = readJ('lottery-meta.json');
